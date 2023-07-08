@@ -1,4 +1,4 @@
-package cache
+package echo_http_cache
 
 import (
 	"encoding/json"
@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
 

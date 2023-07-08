@@ -22,14 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package cache
+package echo_http_cache
 
 import (
 	"context"
 	"time"
 
 	redisCache "github.com/go-redis/cache/v8"
-	"github.com/go-redis/redis/v8"
 )
 
 type (
