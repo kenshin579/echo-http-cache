@@ -104,7 +104,7 @@ func (store *CacheMemoryStore) Get(key uint64) ([]byte, bool) {
 }
 
 // Set implements the cache Adapter interface Set method.
-func (store *CacheMemoryStore) Set(key uint64, response []byte, expiration time.Time) {
+func (store *CacheMemoryStore) Set(key uint64, response []byte, _ time.Time) {
 	store.mutex.RLock()
 	length := len(store.store)
 	store.mutex.RUnlock()

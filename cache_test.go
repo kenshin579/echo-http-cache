@@ -27,7 +27,6 @@ func TestCache(t *testing.T) {
 	mw := Cache(inMemoryStore)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
