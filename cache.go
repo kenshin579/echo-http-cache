@@ -54,7 +54,7 @@ type (
 		// returns true or false, whether it exists or not.
 		Get(key uint64) ([]byte, bool)
 
-		// Set caches a response for a given key until an expiration date.
+		// Set caches a response for a given key until an Expiration date.
 		Set(key uint64, response []byte, expiration time.Time)
 
 		// Release frees cache for a given key.
@@ -70,9 +70,9 @@ type (
 
 		Store CacheStore
 
-		expiration   time.Duration
-		includePaths []string
-		excludePaths []string
+		Expiration   time.Duration
+		IncludePaths []string
+		ExcludePaths []string
 	}
 
 	// CacheResponse is the cached response data structure.
@@ -83,8 +83,8 @@ type (
 		// Header is the cached response header.
 		Header http.Header `json:"header"`
 
-		// Expiration is the cached response expiration date.
-		Expiration time.Time `json:"expiration"`
+		// Expiration is the cached response Expiration date.
+		Expiration time.Time `json:"Expiration"`
 
 		// LastAccess is the last date a cached response was accessed.
 		// Used by LRU and MRU algorithms.
@@ -100,7 +100,7 @@ var (
 	// DefaultCacheConfig defines default values for CacheConfig
 	DefaultCacheConfig = CacheConfig{
 		Skipper:    middleware.DefaultSkipper,
-		expiration: 3 * time.Minute,
+		Expiration: 3 * time.Minute,
 	}
 )
 
@@ -128,8 +128,8 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 	if config.Store == nil {
 		panic("Store configuration must be provided")
 	}
-	if config.expiration < 1 {
-		panic("Cache expiration must be provided")
+	if config.Expiration < 1 {
+		panic("Cache Expiration must be provided")
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -194,7 +194,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 					response := CacheResponse{
 						Value:      value,
 						Header:     writer.Header(),
-						Expiration: now.Add(config.expiration),
+						Expiration: now.Add(config.Expiration),
 						LastAccess: now,
 						Frequency:  1,
 					}
@@ -211,7 +211,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 }
 
 func (c *CacheConfig) isIncludePaths(URL string) bool {
-	for _, p := range c.includePaths {
+	for _, p := range c.IncludePaths {
 		if strings.Contains(URL, p) {
 			return true
 		}
@@ -220,7 +220,7 @@ func (c *CacheConfig) isIncludePaths(URL string) bool {
 }
 
 func (c *CacheConfig) isExcludePaths(URL string) bool {
-	for _, p := range c.excludePaths {
+	for _, p := range c.ExcludePaths {
 		if strings.Contains(URL, p) {
 			return true
 		}
