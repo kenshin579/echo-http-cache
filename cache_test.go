@@ -57,7 +57,7 @@ func Test_CacheWithConfig(t *testing.T) {
 		wants wants
 	}{
 		{
-			name: "test includePaths",
+			name: "test IncludePaths",
 			args: args{
 				method: http.MethodGet,
 				url:    "http://foo.bar/test-1",
@@ -66,8 +66,8 @@ func Test_CacheWithConfig(t *testing.T) {
 						Capacity:  5,
 						Algorithm: LFU,
 					}),
-					expiration:   5 * time.Second,
-					includePaths: []string{"foo.bar"},
+					Expiration:   5 * time.Second,
+					IncludePaths: []string{"foo.bar"},
 				},
 			},
 			wants: wants{
@@ -76,7 +76,7 @@ func Test_CacheWithConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "test excludePaths",
+			name: "test ExcludePaths",
 			args: args{
 				method: http.MethodGet,
 				url:    "http://foo.bar/test-1",
@@ -85,8 +85,8 @@ func Test_CacheWithConfig(t *testing.T) {
 						Capacity:  5,
 						Algorithm: LFU,
 					}),
-					expiration:   5 * time.Second,
-					excludePaths: []string{"foo.bar"},
+					Expiration:   5 * time.Second,
+					ExcludePaths: []string{"foo.bar"},
 				},
 			},
 			wants: wants{
@@ -104,8 +104,8 @@ func Test_CacheWithConfig(t *testing.T) {
 						Capacity:  5,
 						Algorithm: LFU,
 					}),
-					expiration:   5 * time.Second,
-					includePaths: []string{"foo.bar"},
+					Expiration:   5 * time.Second,
+					IncludePaths: []string{"foo.bar"},
 				},
 			},
 			wants: wants{
@@ -192,7 +192,7 @@ func Test_nytes(t *testing.T) {
 	}
 
 	bytes := r.bytes()
-	assert.Equal(t, `{"value":"dGVzdA==","header":null,"expiration":"0001-01-01T00:00:00Z","lastAccess":"0001-01-01T00:00:00Z","frequency":1}`, string(bytes))
+	assert.Equal(t, `{"value":"dGVzdA==","header":null,"Expiration":"0001-01-01T00:00:00Z","lastAccess":"0001-01-01T00:00:00Z","frequency":1}`, string(bytes))
 }
 
 func Test_keyAsString(t *testing.T) {

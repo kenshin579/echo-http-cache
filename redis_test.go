@@ -40,8 +40,8 @@ func (suite *cacheRedisStoreTestSuite) SetupSuite() {
 	suite.echo = echo.New()
 	suite.echo.Use(CacheWithConfig(CacheConfig{
 		Store:        store,
-		expiration:   5 * time.Second,
-		includePaths: []string{"/test"},
+		Expiration:   5 * time.Second,
+		IncludePaths: []string{"/test"},
 	}))
 }
 
