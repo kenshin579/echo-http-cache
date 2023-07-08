@@ -1,4 +1,4 @@
-package cache
+package echo_http_cache
 
 import (
 	"sync"

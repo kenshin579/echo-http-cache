@@ -1,4 +1,4 @@
-package cache
+package echo_http_cache
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/SporkHubr/echo-http-cache/test"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/suite"
 )
 
