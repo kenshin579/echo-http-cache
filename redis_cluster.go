@@ -39,6 +39,15 @@ type (
 	}
 )
 
+// NewCacheRedisClusterWithConfig initializes Redis adapter.
+func NewCacheRedisClusterWithConfig(opt redis.RingOptions) CacheStore {
+	return &CacheRedisClusterStore{
+		redisCache.New(&redisCache.Options{
+			Redis: redis.NewRing(&opt),
+		}),
+	}
+}
+
 // Get implements the cache CacheRedisClusterStore interface Get method.
 func (store *CacheRedisClusterStore) Get(key uint64) ([]byte, bool) {
 	var c []byte
@@ -61,13 +70,4 @@ func (store *CacheRedisClusterStore) Set(key uint64, response []byte, expiration
 // Release implements the cache CacheRedisClusterStore interface Release method.
 func (store *CacheRedisClusterStore) Release(key uint64) {
 	store.store.Delete(context.Background(), keyAsString(key))
-}
-
-// NewRedisCluster initializes Redis adapter.
-func NewRedisCluster(opt redis.RingOptions) CacheStore {
-	return &CacheRedisClusterStore{
-		redisCache.New(&redisCache.Options{
-			Redis: redis.NewRing(&opt),
-		}),
-	}
 }

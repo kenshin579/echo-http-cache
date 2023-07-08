@@ -25,7 +25,7 @@ func TestRedisStoreSuite(t *testing.T) {
 func (suite *redisStoreTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	db, _ := test.NewRedisDB()
-	store := NewRedis(redis.Options{
+	store := NewCacheRedisStoreWithConfig(redis.Options{
 		Addr: db.Addr(),
 	})
 	suite.miniredis = db
@@ -40,7 +40,6 @@ func (suite *redisStoreTestSuite) Test() {
 	key := generateKey("GET", "1")
 
 	suite.Run("Set, Get", func() {
-
 		suite.cacheStore.Set(key, []byte("test"), time.Now().Add(1*time.Minute))
 
 		data, ok := suite.cacheStore.Get(key)

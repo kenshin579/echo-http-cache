@@ -15,6 +15,14 @@ type (
 	}
 )
 
+func NewCacheRedisStoreWithConfig(opt redis.Options) CacheStore {
+	return &CacheRedisStore{
+		redisCache.New(&redisCache.Options{
+			Redis: redis.NewClient(&opt),
+		}),
+	}
+}
+
 // Get implements the cache CacheRedisClusterStore interface Get method.
 func (store *CacheRedisStore) Get(key uint64) ([]byte, bool) {
 	var data []byte
@@ -35,12 +43,4 @@ func (store *CacheRedisStore) Set(key uint64, response []byte, expiration time.T
 
 func (store *CacheRedisStore) Release(key uint64) {
 	store.store.Delete(context.Background(), keyAsString(key))
-}
-
-func NewRedis(opt redis.Options) CacheStore {
-	return &CacheRedisStore{
-		redisCache.New(&redisCache.Options{
-			Redis: redis.NewClient(&opt),
-		}),
-	}
 }
