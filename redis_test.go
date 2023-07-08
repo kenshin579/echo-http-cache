@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SporkHubr/echo-http-cache/test"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/go-redis/redis/v8"
+	"github.com/kenshin579/echo-http-cache/test"
 	"github.com/stretchr/testify/suite"
 )
 
