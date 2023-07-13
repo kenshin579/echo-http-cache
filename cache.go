@@ -34,6 +34,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,7 +85,7 @@ type (
 		Header http.Header `json:"header"`
 
 		// Expiration is the cached response Expiration date.
-		Expiration time.Time `json:"Expiration"`
+		Expiration time.Time `json:"expiration"`
 
 		// LastAccess is the last date a cached response was accessed.
 		// Used by LRU and MRU algorithms.
@@ -129,7 +130,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 		panic("Store configuration must be provided")
 	}
 	if config.Expiration < 1 {
-		panic("Cache Expiration must be provided")
+		panic("Cache expiration must be provided")
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -157,12 +158,11 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 					config.Store.Release(key)
 				} else {
 					if cachedResponse, ok := config.Store.Get(key); ok {
-						response := bytesToResponse(cachedResponse)
+						response := toCacheResponse(cachedResponse)
 						now := time.Now()
 						if response.Expiration.After(now) {
 							response.LastAccess = now
 							response.Frequency++
-
 							config.Store.Set(key, response.bytes(), response.Expiration)
 
 							for k, v := range response.Header {
@@ -198,7 +198,9 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 						LastAccess: now,
 						Frequency:  1,
 					}
-					config.Store.Set(key, response.bytes(), response.Expiration)
+					if !isAllFieldsEmpty(value) {
+						config.Store.Set(key, response.bytes(), response.Expiration)
+					}
 				}
 				return nil
 			}
@@ -257,8 +259,8 @@ func (r CacheResponse) bytes() []byte {
 	return data
 }
 
-// bytesToResponse converts bytes array into CacheResponse data structure.
-func bytesToResponse(b []byte) CacheResponse {
+// toCacheResponse converts bytes array into CacheResponse data structure.
+func toCacheResponse(b []byte) CacheResponse {
 	var r CacheResponse
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.Decode(&r)
@@ -286,4 +288,23 @@ func generateKey(method, URL string) uint64 {
 	hash.Write([]byte(fmt.Sprintf("%s:%s", method, URL)))
 
 	return hash.Sum64()
+}
+
+func isAllFieldsEmpty(inter any) bool {
+	val := reflect.ValueOf(inter)
+	if val.IsZero() {
+		return true
+	}
+
+	if val.Kind() != reflect.Struct {
+		return false
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		if !field.IsZero() {
+			return false
+		}
+	}
+	return true
 }

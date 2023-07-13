@@ -41,7 +41,7 @@ func (suite *cacheRedisStoreTestSuite) SetupSuite() {
 	suite.echo.Use(CacheWithConfig(CacheConfig{
 		Store:        store,
 		Expiration:   5 * time.Second,
-		IncludePaths: []string{"/test"},
+		IncludePaths: []string{"/test", "/empty"},
 	}))
 }
 
@@ -74,7 +74,11 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		return c.String(http.StatusOK, "test")
 	})
 
-	suite.Run("echo cache test with redis store", func() {
+	suite.echo.GET("/empty", func(c echo.Context) error {
+		return c.String(http.StatusOK, "")
+	})
+
+	suite.Run("GET /test with non empty body", func() {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		rec := httptest.NewRecorder()
 
@@ -91,5 +95,19 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
 		suite.Equal("test", string(cacheResponse.Value))
+	})
+
+	suite.Run("GET /empty", func() {
+		req := httptest.NewRequest(http.MethodGet, "/empty", nil)
+		rec := httptest.NewRecorder()
+
+		suite.echo.ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+		suite.Equal("", rec.Body.String())
+
+		key := generateKey(http.MethodGet, "/empty")
+		_, ok := suite.cacheStore.Get(key)
+		suite.False(ok)
 	})
 }

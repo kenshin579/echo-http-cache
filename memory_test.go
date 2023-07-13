@@ -47,7 +47,7 @@ func TestGet(t *testing.T) {
 			b, ok := store.Get(tt.key)
 			assert.Equal(t, tt.ok, ok)
 
-			got := bytesToResponse(b).Value
+			got := toCacheResponse(b).Value
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -94,7 +94,7 @@ func TestSet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store.Set(tt.key, tt.response.bytes(), tt.response.Expiration)
-			if bytesToResponse(store.store[tt.key]).Value == nil {
+			if toCacheResponse(store.store[tt.key]).Value == nil {
 				t.Errorf(
 					"memory.Set() error = store[%v] response is not %s", tt.key, tt.response.Value,
 				)
