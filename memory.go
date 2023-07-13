@@ -143,7 +143,7 @@ func (store *CacheMemoryStore) evict() {
 	}
 
 	for k, v := range store.store {
-		r := bytesToResponse(v)
+		r := toCacheResponse(v)
 		switch store.algorithm {
 		case LRU:
 			if r.LastAccess.Before(lastAccess) {

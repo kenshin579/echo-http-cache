@@ -155,7 +155,7 @@ func TestCache_panicBehavior(t *testing.T) {
 	})
 }
 
-func Test_bytesToResponse(t *testing.T) {
+func Test_toCacheResponse(t *testing.T) {
 	r := CacheResponse{
 		Value:      []byte("value 1"),
 		Expiration: time.Time{},
@@ -177,13 +177,13 @@ func Test_bytesToResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := bytesToResponse(tt.b)
+			got := toCacheResponse(tt.b)
 			assert.Equal(t, tt.wantValue, string(got.Value))
 		})
 	}
 }
 
-func Test_nytes(t *testing.T) {
+func Test_bytes(t *testing.T) {
 	r := CacheResponse{
 		Value:      []byte("test"),
 		Expiration: time.Time{},
@@ -192,7 +192,7 @@ func Test_nytes(t *testing.T) {
 	}
 
 	bytes := r.bytes()
-	assert.Equal(t, `{"value":"dGVzdA==","header":null,"Expiration":"0001-01-01T00:00:00Z","lastAccess":"0001-01-01T00:00:00Z","frequency":1}`, string(bytes))
+	assert.Equal(t, `{"value":"dGVzdA==","header":null,"expiration":"0001-01-01T00:00:00Z","lastAccess":"0001-01-01T00:00:00Z","frequency":1}`, string(bytes))
 }
 
 func Test_keyAsString(t *testing.T) {
