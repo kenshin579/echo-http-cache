@@ -279,3 +279,44 @@ func Test_sortURLParams(t *testing.T) {
 		})
 	}
 }
+
+func Test_isAllFieldsEmpty(t *testing.T) {
+	type person struct {
+		Name    string `json:"name"`
+		Age     int    `json:"age"`
+		Address struct {
+			City string `json:"city"`
+			Zip  int    `json:"zip"`
+		} `json:"address"`
+	}
+
+	p1 := person{
+		Address: struct {
+			City string `json:"city"`
+			Zip  int    `json:"zip"`
+		}{
+			City: "seoul",
+		},
+	}
+
+	p2 := person{}
+	p3 := person{
+		Name: "",
+		Age:  0,
+		Address: struct {
+			City string `json:"city"`
+			Zip  int    `json:"zip"`
+		}{
+			City: "",
+			Zip:  0,
+		},
+	}
+
+	assert.False(t, isAllFieldsEmpty(p1))
+	assert.True(t, isAllFieldsEmpty(p2))
+	assert.True(t, isAllFieldsEmpty(p3))
+	assert.False(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":1}`)))
+	assert.False(t, isAllFieldsEmpty([]byte(`{"a":"","b":"b","c":0}`)))
+	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0}`)))
+	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0.0}`)))
+}
