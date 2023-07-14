@@ -74,8 +74,12 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		return c.String(http.StatusOK, "test")
 	})
 
-	suite.echo.GET("/empty", func(c echo.Context) error {
+	suite.echo.GET("/empty/string", func(c echo.Context) error {
 		return c.String(http.StatusOK, "")
+	})
+
+	suite.echo.GET("/empty/json", func(c echo.Context) error {
+		return c.String(http.StatusOK, `{"symbolId":"","type":"","price":0.0}`)
 	})
 
 	suite.Run("GET /test with non empty body", func() {
@@ -97,8 +101,8 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		suite.Equal("test", string(cacheResponse.Value))
 	})
 
-	suite.Run("GET /empty", func() {
-		req := httptest.NewRequest(http.MethodGet, "/empty", nil)
+	suite.Run("GET /empty/string", func() {
+		req := httptest.NewRequest(http.MethodGet, "/empty/string", nil)
 		rec := httptest.NewRecorder()
 
 		suite.echo.ServeHTTP(rec, req)
@@ -106,7 +110,21 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		suite.Equal(http.StatusOK, rec.Code)
 		suite.Equal("", rec.Body.String())
 
-		key := generateKey(http.MethodGet, "/empty")
+		key := generateKey(http.MethodGet, "/empty/string")
+		_, ok := suite.cacheStore.Get(key)
+		suite.False(ok)
+	})
+
+	suite.Run("GET /empty/json", func() {
+		req := httptest.NewRequest(http.MethodGet, "/empty/json", nil)
+		rec := httptest.NewRecorder()
+
+		suite.echo.ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+		suite.Equal(`{"symbolId":"","type":"","price":0.0}`, rec.Body.String())
+
+		key := generateKey(http.MethodGet, "/empty2")
 		_, ok := suite.cacheStore.Get(key)
 		suite.False(ok)
 	})
