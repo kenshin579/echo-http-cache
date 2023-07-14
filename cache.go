@@ -160,7 +160,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 					if cachedResponse, ok := config.Store.Get(key); ok {
 						response := toCacheResponse(cachedResponse)
 						now := time.Now()
-						if response.Expiration.After(now) {
+						if now.After(response.Expiration) {
 							response.LastAccess = now
 							response.Frequency++
 							config.Store.Set(key, response.bytes(), response.Expiration)
