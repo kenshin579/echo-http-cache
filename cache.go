@@ -67,18 +67,22 @@ type (
 
 		Store CacheStore
 
-		Expiration   time.Duration
-		IncludePaths []string
-		ExcludePaths []string
+		Expiration                 time.Duration // default expiration
+		IncludePaths               []string
+		IncludePathsWithExpiration map[string]time.Duration // key: path, value: expiration //IncludePathsWithExpiration has higher priority
+		ExcludePaths               []string
 	}
 
 	// CacheResponse is the cached response data structure.
 	CacheResponse struct {
-		// Value is the cached response value.
-		Value []byte `json:"value"`
+		// URL is URL
+		URL string `json:"url"`
 
 		// Header is the cached response header.
 		Header http.Header `json:"header"`
+
+		// Body is the cached response value.
+		Body []byte `json:"body"`
 
 		// Expiration is the cached response Expiration date.
 		Expiration time.Time `json:"expiration"`
@@ -143,7 +147,6 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 			}
 
 			if c.Request().Method == http.MethodGet {
-				// isCached := false
 				sortURLParams(c.Request().URL)
 				key := generateKey(c.Request().Method, c.Request().URL.String())
 
@@ -162,7 +165,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 							c.Response().Header().Set(k, strings.Join(v, ","))
 						}
 						c.Response().WriteHeader(http.StatusOK)
-						c.Response().Write(response.Value)
+						c.Response().Write(response.Body)
 						return nil
 					}
 				}
@@ -178,18 +181,19 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 				}
 
 				if writer.statusCode < http.StatusBadRequest {
-					value := resBody.Bytes()
+					body := resBody.Bytes()
 					now := time.Now()
 
 					response := CacheResponse{
-						Value:      value,
+						Body:       body,
+						URL:        c.Request().URL.String(),
 						Header:     writer.Header(),
-						Expiration: now.Add(config.Expiration),
+						Expiration: config.getExpiration(now, c.Request().URL.String()),
 						LastAccess: now,
 						Frequency:  1,
 					}
 
-					if !isAllFieldsEmpty(value) {
+					if !isAllFieldsEmpty(body) {
 						config.Store.Set(key, response.bytes(), response.Expiration)
 					}
 				}
@@ -206,6 +210,12 @@ func (c *CacheConfig) isIncludePaths(URL string) bool {
 			return true
 		}
 	}
+
+	for k, _ := range c.IncludePathsWithExpiration {
+		if strings.Contains(URL, k) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -216,6 +226,16 @@ func (c *CacheConfig) isExcludePaths(URL string) bool {
 		}
 	}
 	return false
+}
+
+func (c *CacheConfig) getExpiration(now time.Time, URL string) time.Time {
+	for k, v := range c.IncludePathsWithExpiration {
+		if strings.Contains(URL, k) {
+			return now.Add(v)
+		}
+	}
+
+	return now.Add(c.Expiration)
 }
 
 type bodyDumpResponseWriter struct {

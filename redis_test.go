@@ -42,6 +42,9 @@ func (suite *cacheRedisStoreTestSuite) SetupSuite() {
 		Store:        store,
 		Expiration:   5 * time.Second,
 		IncludePaths: []string{"/test", "/empty"},
+		IncludePathsWithExpiration: map[string]time.Duration{
+			"/expired": 1 * time.Minute,
+		},
 	}))
 }
 
@@ -70,10 +73,7 @@ func (suite *cacheRedisStoreTestSuite) Test_Redis_CacheStore() {
 }
 
 func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
-	actualCalledCountForTestAPI := 0
-
 	suite.echo.GET("/test", func(c echo.Context) error {
-		actualCalledCountForTestAPI++
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -83,6 +83,24 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 
 	suite.echo.GET("/empty/json", func(c echo.Context) error {
 		return c.String(http.StatusOK, `{"symbolId":"","type":"","price":0.0}`)
+	})
+
+	suite.echo.GET("/expired", func(c echo.Context) error {
+		return c.String(http.StatusOK, "expired")
+	})
+
+	suite.Run("GET /expired - first call to store response in the cache", func() {
+		req := httptest.NewRequest(http.MethodGet, "/expired", nil)
+		rec := httptest.NewRecorder()
+
+		suite.echo.ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+		suite.Equal(`expired`, rec.Body.String())
+
+		key := generateKey(http.MethodGet, "/expired")
+		_, ok := suite.cacheStore.Get(key)
+		suite.True(ok)
 	})
 
 	suite.Run("GET /test - return actual response and store in the cache", func() {
@@ -101,8 +119,8 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		var cacheResponse CacheResponse
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
-		suite.Equal("test", string(cacheResponse.Value))
-		suite.Equal(1, actualCalledCountForTestAPI)
+		suite.Equal("test", string(cacheResponse.Body))
+		suite.Equal(1, cacheResponse.Frequency)
 	})
 
 	suite.Run("GET /test - not expired. return response from the cache", func() {
@@ -121,8 +139,8 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		var cacheResponse CacheResponse
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
-		suite.Equal("test", string(cacheResponse.Value))
-		suite.Equal(1, actualCalledCountForTestAPI)
+		suite.Equal("test", string(cacheResponse.Body))
+		suite.Equal(2, cacheResponse.Frequency)
 	})
 
 	suite.Run("GET /test - expired. return actual response", func() {
@@ -143,8 +161,8 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		var cacheResponse CacheResponse
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
-		suite.Equal("test", string(cacheResponse.Value))
-		suite.Equal(2, actualCalledCountForTestAPI)
+		suite.Equal("test", string(cacheResponse.Body))
+		suite.Equal(1, cacheResponse.Frequency)
 	})
 
 	suite.Run("GET /empty/string", func() {
@@ -170,8 +188,27 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		suite.Equal(http.StatusOK, rec.Code)
 		suite.Equal(`{"symbolId":"","type":"","price":0.0}`, rec.Body.String())
 
-		key := generateKey(http.MethodGet, "/empty2")
+		key := generateKey(http.MethodGet, "/empty/json")
 		_, ok := suite.cacheStore.Get(key)
 		suite.False(ok)
+	})
+
+	suite.Run("GET /expired - second call, still get the response from the cache", func() {
+		req := httptest.NewRequest(http.MethodGet, "/expired", nil)
+		rec := httptest.NewRecorder()
+
+		suite.echo.ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+		suite.Equal(`expired`, rec.Body.String())
+
+		key := generateKey(http.MethodGet, "/expired")
+		data, ok := suite.cacheStore.Get(key)
+		suite.True(ok)
+
+		var cacheResponse CacheResponse
+		err := json.Unmarshal(data, &cacheResponse)
+		suite.NoError(err)
+		suite.Equal(2, cacheResponse.Frequency)
 	})
 }
