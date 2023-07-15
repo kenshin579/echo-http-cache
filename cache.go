@@ -44,10 +44,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-const (
-	refreshKey = "refreshKey"
-)
-
 type (
 	// CacheStore is the interface to be implemented by custom stores.
 	CacheStore interface {
@@ -147,36 +143,31 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 			}
 
 			if c.Request().Method == http.MethodGet {
+				// isCached := false
 				sortURLParams(c.Request().URL)
 				key := generateKey(c.Request().Method, c.Request().URL.String())
 
-				params := c.Request().URL.Query()
+				if cachedResponse, ok := config.Store.Get(key); ok {
+					response := toCacheResponse(cachedResponse)
+					now := time.Now()
 
-				if _, ok := params[refreshKey]; ok {
-					refreshKeyValue := params.Get(refreshKey)
-					delete(params, refreshKeyValue)
-					config.Store.Release(key)
-				} else {
-					if cachedResponse, ok := config.Store.Get(key); ok {
-						response := toCacheResponse(cachedResponse)
-						now := time.Now()
-						if now.After(response.Expiration) {
-							response.LastAccess = now
-							response.Frequency++
-							config.Store.Set(key, response.bytes(), response.Expiration)
+					// not expired. return response from the cache
+					if !isExpired(now, response.Expiration) {
+						// restore the response in the cache
+						response.LastAccess = now
+						response.Frequency++
 
-							for k, v := range response.Header {
-								c.Response().Header().Set(k, strings.Join(v, ","))
-							}
-							c.Response().WriteHeader(http.StatusOK)
-							c.Response().Write(response.Value)
-							return nil
+						config.Store.Set(key, response.bytes(), response.Expiration)
+						for k, v := range response.Header {
+							c.Response().Header().Set(k, strings.Join(v, ","))
 						}
-
-						config.Store.Release(key)
+						c.Response().WriteHeader(http.StatusOK)
+						c.Response().Write(response.Value)
+						return nil
 					}
 				}
 
+				// Response
 				resBody := new(bytes.Buffer)
 				mw := io.MultiWriter(c.Response().Writer, resBody)
 				writer := &bodyDumpResponseWriter{Writer: mw, ResponseWriter: c.Response().Writer}
@@ -186,9 +177,8 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 					c.Error(err)
 				}
 
-				statusCode := writer.statusCode
-				value := resBody.Bytes()
-				if statusCode < http.StatusBadRequest {
+				if writer.statusCode < http.StatusBadRequest {
+					value := resBody.Bytes()
 					now := time.Now()
 
 					response := CacheResponse{
@@ -198,14 +188,12 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 						LastAccess: now,
 						Frequency:  1,
 					}
+
 					if !isAllFieldsEmpty(value) {
 						config.Store.Set(key, response.bytes(), response.Expiration)
 					}
 				}
 				return nil
-			}
-			if err := next(c); err != nil {
-				c.Error(err)
 			}
 			return nil
 		}
@@ -341,4 +329,8 @@ func isMapEmpty(m map[string]any) bool {
 		}
 	}
 	return true
+}
+
+func isExpired(now, expiration time.Time) bool {
+	return now.After(expiration)
 }

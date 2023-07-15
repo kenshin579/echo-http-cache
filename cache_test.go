@@ -48,8 +48,9 @@ func Test_CacheWithConfig(t *testing.T) {
 	}
 
 	type wants struct {
-		code     int
-		isCached bool
+		code         int
+		responseBody string
+		isCached     bool
 	}
 	tests := []struct {
 		name  string
@@ -71,15 +72,16 @@ func Test_CacheWithConfig(t *testing.T) {
 				},
 			},
 			wants: wants{
-				code:     http.StatusOK,
-				isCached: true,
+				code:         http.StatusOK,
+				responseBody: "test",
+				isCached:     true,
 			},
 		},
 		{
 			name: "test ExcludePaths",
 			args: args{
 				method: http.MethodGet,
-				url:    "http://foo.bar/test-1",
+				url:    "http://foo.bar/test-2",
 				cacheConfig: CacheConfig{
 					Store: NewCacheMemoryStoreWithConfig(CacheMemoryStoreConfig{
 						Capacity:  5,
@@ -90,8 +92,9 @@ func Test_CacheWithConfig(t *testing.T) {
 				},
 			},
 			wants: wants{
-				code:     http.StatusOK,
-				isCached: false,
+				code:         http.StatusOK,
+				responseBody: "test",
+				isCached:     false,
 			},
 		},
 		{
@@ -109,8 +112,9 @@ func Test_CacheWithConfig(t *testing.T) {
 				},
 			},
 			wants: wants{
-				code:     http.StatusOK,
-				isCached: false,
+				code:         http.StatusOK,
+				responseBody: "",
+				isCached:     false,
 			},
 		},
 	}
@@ -125,7 +129,7 @@ func Test_CacheWithConfig(t *testing.T) {
 			_ = mw(handler)(c)
 
 			assert.Equal(t, tt.wants.code, rec.Code)
-			assert.Equal(t, "test", rec.Body.String())
+			assert.Equal(t, tt.wants.responseBody, rec.Body.String())
 
 			cacheResp, ok := tt.args.cacheConfig.Store.Get(generateKey(tt.args.method, tt.args.url))
 			assert.Equal(t, tt.wants.isCached, ok)

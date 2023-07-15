@@ -70,7 +70,10 @@ func (suite *cacheRedisStoreTestSuite) Test_Redis_CacheStore() {
 }
 
 func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
+	actualCalledCountForTestAPI := 0
+
 	suite.echo.GET("/test", func(c echo.Context) error {
+		actualCalledCountForTestAPI++
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -82,7 +85,7 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		return c.String(http.StatusOK, `{"symbolId":"","type":"","price":0.0}`)
 	})
 
-	suite.Run("GET /test with non empty body", func() {
+	suite.Run("GET /test - return actual response and store in the cache", func() {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		rec := httptest.NewRecorder()
 
@@ -99,6 +102,49 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
 		suite.Equal("test", string(cacheResponse.Value))
+		suite.Equal(1, actualCalledCountForTestAPI)
+	})
+
+	suite.Run("GET /test - not expired. return response from the cache", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		rec := httptest.NewRecorder()
+
+		suite.echo.ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+		suite.Equal("test", rec.Body.String())
+
+		key := generateKey(http.MethodGet, "/test")
+		data, ok := suite.cacheStore.Get(key)
+		suite.True(ok)
+
+		var cacheResponse CacheResponse
+		err := json.Unmarshal(data, &cacheResponse)
+		suite.NoError(err)
+		suite.Equal("test", string(cacheResponse.Value))
+		suite.Equal(1, actualCalledCountForTestAPI)
+	})
+
+	suite.Run("GET /test - expired. return actual response", func() {
+		time.Sleep(5 * time.Second)
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		rec := httptest.NewRecorder()
+
+		suite.echo.ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+		suite.Equal("test", rec.Body.String())
+
+		key := generateKey(http.MethodGet, "/test")
+		data, ok := suite.cacheStore.Get(key)
+		suite.True(ok)
+
+		var cacheResponse CacheResponse
+		err := json.Unmarshal(data, &cacheResponse)
+		suite.NoError(err)
+		suite.Equal("test", string(cacheResponse.Value))
+		suite.Equal(2, actualCalledCountForTestAPI)
 	})
 
 	suite.Run("GET /empty/string", func() {
