@@ -15,7 +15,7 @@ func TestGet(t *testing.T) {
 		LRU,
 		map[uint64][]byte{
 			14974843192121052621: CacheResponse{
-				Value:      []byte("value 1"),
+				Body:       []byte("value 1"),
 				Expiration: time.Now(),
 				LastAccess: time.Now(),
 				Frequency:  1,
@@ -47,7 +47,7 @@ func TestGet(t *testing.T) {
 			b, ok := store.Get(tt.key)
 			assert.Equal(t, tt.ok, ok)
 
-			got := toCacheResponse(b).Value
+			got := toCacheResponse(b).Body
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -70,7 +70,7 @@ func TestSet(t *testing.T) {
 			"sets response cache",
 			1,
 			CacheResponse{
-				Value:      []byte("value 1"),
+				Body:       []byte("value 1"),
 				Expiration: time.Now().Add(1 * time.Minute),
 			},
 		},
@@ -78,7 +78,7 @@ func TestSet(t *testing.T) {
 			"sets response cache",
 			2,
 			CacheResponse{
-				Value:      []byte("value 2"),
+				Body:       []byte("value 2"),
 				Expiration: time.Now().Add(1 * time.Minute),
 			},
 		},
@@ -86,7 +86,7 @@ func TestSet(t *testing.T) {
 			"sets response cache",
 			3,
 			CacheResponse{
-				Value:      []byte("value 3"),
+				Body:       []byte("value 3"),
 				Expiration: time.Now().Add(1 * time.Minute),
 			},
 		},
@@ -94,9 +94,9 @@ func TestSet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store.Set(tt.key, tt.response.bytes(), tt.response.Expiration)
-			if toCacheResponse(store.store[tt.key]).Value == nil {
+			if toCacheResponse(store.store[tt.key]).Body == nil {
 				t.Errorf(
-					"memory.Set() error = store[%v] response is not %s", tt.key, tt.response.Value,
+					"memory.Set() error = store[%v] response is not %s", tt.key, tt.response.Body,
 				)
 			}
 		})
@@ -111,15 +111,15 @@ func TestRelease(t *testing.T) {
 		map[uint64][]byte{
 			14974843192121052621: CacheResponse{
 				Expiration: time.Now().Add(1 * time.Minute),
-				Value:      []byte("value 1"),
+				Body:       []byte("value 1"),
 			}.bytes(),
 			14974839893586167988: CacheResponse{
 				Expiration: time.Now(),
-				Value:      []byte("value 2"),
+				Body:       []byte("value 2"),
 			}.bytes(),
 			14974840993097796199: CacheResponse{
 				Expiration: time.Now(),
-				Value:      []byte("value 3"),
+				Body:       []byte("value 3"),
 			}.bytes(),
 		},
 	}
@@ -185,19 +185,19 @@ func TestEvict(t *testing.T) {
 			tt.algorithm,
 			map[uint64][]byte{
 				14974843192121052621: CacheResponse{
-					Value:      []byte("value 1"),
+					Body:       []byte("value 1"),
 					Expiration: time.Now().Add(1 * time.Minute),
 					LastAccess: time.Now().Add(-1 * time.Minute),
 					Frequency:  2,
 				}.bytes(),
 				14974839893586167988: CacheResponse{
-					Value:      []byte("value 2"),
+					Body:       []byte("value 2"),
 					Expiration: time.Now().Add(1 * time.Minute),
 					LastAccess: time.Now().Add(-2 * time.Minute),
 					Frequency:  1,
 				}.bytes(),
 				14974840993097796199: CacheResponse{
-					Value:      []byte("value 3"),
+					Body:       []byte("value 3"),
 					Expiration: time.Now().Add(1 * time.Minute),
 					LastAccess: time.Now().Add(-3 * time.Minute),
 					Frequency:  3,

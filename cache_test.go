@@ -138,7 +138,7 @@ func Test_CacheWithConfig(t *testing.T) {
 				var cacheResponse CacheResponse
 				err := json.Unmarshal(cacheResp, &cacheResponse)
 				assert.NoError(t, err)
-				assert.Equal(t, "test", string(cacheResponse.Value))
+				assert.Equal(t, "test", string(cacheResponse.Body))
 			}
 		})
 	}
@@ -161,7 +161,7 @@ func TestCache_panicBehavior(t *testing.T) {
 
 func Test_toCacheResponse(t *testing.T) {
 	r := CacheResponse{
-		Value:      []byte("value 1"),
+		Body:       []byte("value 1"),
 		Expiration: time.Time{},
 		Frequency:  1,
 		LastAccess: time.Time{},
@@ -182,21 +182,21 @@ func Test_toCacheResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := toCacheResponse(tt.b)
-			assert.Equal(t, tt.wantValue, string(got.Value))
+			assert.Equal(t, tt.wantValue, string(got.Body))
 		})
 	}
 }
 
 func Test_bytes(t *testing.T) {
 	r := CacheResponse{
-		Value:      []byte("test"),
+		Body:       []byte("test"),
 		Expiration: time.Time{},
 		Frequency:  1,
 		LastAccess: time.Time{},
 	}
 
 	bytes := r.bytes()
-	assert.Equal(t, `{"value":"dGVzdA==","header":null,"expiration":"0001-01-01T00:00:00Z","lastAccess":"0001-01-01T00:00:00Z","frequency":1}`, string(bytes))
+	assert.Equal(t, `{"url":"","header":null,"body":"dGVzdA==","expiration":"0001-01-01T00:00:00Z","lastAccess":"0001-01-01T00:00:00Z","frequency":1}`, string(bytes))
 }
 
 func Test_keyAsString(t *testing.T) {

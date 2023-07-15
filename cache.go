@@ -75,11 +75,14 @@ type (
 
 	// CacheResponse is the cached response data structure.
 	CacheResponse struct {
-		// Value is the cached response value.
-		Value []byte `json:"value"`
+		// URL is URL
+		URL string `json:"url"`
 
 		// Header is the cached response header.
 		Header http.Header `json:"header"`
+
+		// Body is the cached response value.
+		Body []byte `json:"body"`
 
 		// Expiration is the cached response Expiration date.
 		Expiration time.Time `json:"expiration"`
@@ -162,7 +165,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 							c.Response().Header().Set(k, strings.Join(v, ","))
 						}
 						c.Response().WriteHeader(http.StatusOK)
-						c.Response().Write(response.Value)
+						c.Response().Write(response.Body)
 						return nil
 					}
 				}
@@ -178,18 +181,19 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 				}
 
 				if writer.statusCode < http.StatusBadRequest {
-					value := resBody.Bytes()
+					body := resBody.Bytes()
 					now := time.Now()
 
 					response := CacheResponse{
-						Value:      value,
+						Body:       body,
+						URL:        c.Request().URL.String(),
 						Header:     writer.Header(),
 						Expiration: config.getExpiration(now, c.Request().URL.String()),
 						LastAccess: now,
 						Frequency:  1,
 					}
 
-					if !isAllFieldsEmpty(value) {
+					if !isAllFieldsEmpty(body) {
 						config.Store.Set(key, response.bytes(), response.Expiration)
 					}
 				}
@@ -225,9 +229,12 @@ func (c *CacheConfig) isExcludePaths(URL string) bool {
 }
 
 func (c *CacheConfig) getExpiration(now time.Time, URL string) time.Time {
-	if expiration, ok := c.IncludePathsWithExpiration[URL]; ok {
-		return now.Add(expiration)
+	for k, v := range c.IncludePathsWithExpiration {
+		if strings.Contains(URL, k) {
+			return now.Add(v)
+		}
 	}
+
 	return now.Add(c.Expiration)
 }
 

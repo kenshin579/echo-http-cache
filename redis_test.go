@@ -119,7 +119,7 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		var cacheResponse CacheResponse
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
-		suite.Equal("test", string(cacheResponse.Value))
+		suite.Equal("test", string(cacheResponse.Body))
 		suite.Equal(1, cacheResponse.Frequency)
 	})
 
@@ -139,7 +139,7 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		var cacheResponse CacheResponse
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
-		suite.Equal("test", string(cacheResponse.Value))
+		suite.Equal("test", string(cacheResponse.Body))
 		suite.Equal(2, cacheResponse.Frequency)
 	})
 
@@ -161,7 +161,7 @@ func (suite *cacheRedisStoreTestSuite) Test_Echo_CacheWithConfig() {
 		var cacheResponse CacheResponse
 		err := json.Unmarshal(data, &cacheResponse)
 		suite.NoError(err)
-		suite.Equal("test", string(cacheResponse.Value))
+		suite.Equal("test", string(cacheResponse.Body))
 		suite.Equal(1, cacheResponse.Frequency)
 	})
 
