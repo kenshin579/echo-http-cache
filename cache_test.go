@@ -58,7 +58,7 @@ func Test_CacheWithConfig(t *testing.T) {
 		wants wants
 	}{
 		{
-			name: "test IncludePaths",
+			name: "test IncludePathsWithExpiration",
 			args: args{
 				method: http.MethodGet,
 				url:    "http://foo.bar/test-1",
@@ -323,4 +323,16 @@ func Test_isAllFieldsEmpty(t *testing.T) {
 	assert.False(t, isAllFieldsEmpty([]byte(`{"a":"","b":"b","c":0}`)))
 	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0}`)))
 	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0.0}`)))
+}
+
+func Test_isIncludePaths(t *testing.T) {
+	config := CacheConfig{
+		IncludePathsWithExpiration: map[string]time.Duration{
+			"/test1": time.Duration(1) * time.Second,
+			"/test2": time.Duration(2) * time.Second,
+		},
+	}
+	assert.False(t, config.isIncludePaths("/test3"))
+	assert.True(t, config.isIncludePaths("/test1"))
+	assert.True(t, config.isIncludePaths("/test2"))
 }

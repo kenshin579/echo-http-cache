@@ -67,9 +67,10 @@ type (
 
 		Store CacheStore
 
-		Expiration   time.Duration
-		IncludePaths []string
-		ExcludePaths []string
+		Expiration                 time.Duration // default expiration
+		IncludePaths               []string
+		IncludePathsWithExpiration map[string]time.Duration // key: path, value: expiration //IncludePathsWithExpiration has higher priority
+		ExcludePaths               []string
 	}
 
 	// CacheResponse is the cached response data structure.
@@ -143,7 +144,6 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 			}
 
 			if c.Request().Method == http.MethodGet {
-				// isCached := false
 				sortURLParams(c.Request().URL)
 				key := generateKey(c.Request().Method, c.Request().URL.String())
 
@@ -184,7 +184,7 @@ func CacheWithConfig(config CacheConfig) echo.MiddlewareFunc {
 					response := CacheResponse{
 						Value:      value,
 						Header:     writer.Header(),
-						Expiration: now.Add(config.Expiration),
+						Expiration: config.getExpiration(now, c.Request().URL.String()),
 						LastAccess: now,
 						Frequency:  1,
 					}
@@ -206,6 +206,12 @@ func (c *CacheConfig) isIncludePaths(URL string) bool {
 			return true
 		}
 	}
+
+	for k, _ := range c.IncludePathsWithExpiration {
+		if strings.Contains(URL, k) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -216,6 +222,13 @@ func (c *CacheConfig) isExcludePaths(URL string) bool {
 		}
 	}
 	return false
+}
+
+func (c *CacheConfig) getExpiration(now time.Time, URL string) time.Time {
+	if expiration, ok := c.IncludePathsWithExpiration[URL]; ok {
+		return now.Add(expiration)
+	}
+	return now.Add(c.Expiration)
 }
 
 type bodyDumpResponseWriter struct {
