@@ -331,7 +331,7 @@ func isMapEmpty(m map[string]any) bool {
 	for _, v := range m {
 		switch val := v.(type) {
 		case string:
-			if val != "" {
+			if val != "" && val != "0001-01-01T00:00:00Z" {
 				return false
 			}
 		case int:
