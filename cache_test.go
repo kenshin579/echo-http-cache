@@ -292,6 +292,7 @@ func Test_isAllFieldsEmpty(t *testing.T) {
 			City string `json:"city"`
 			Zip  int    `json:"zip"`
 		} `json:"address"`
+		UpdatedAt time.Time `json:"updatedAt"`
 	}
 
 	p1 := person{
@@ -323,6 +324,7 @@ func Test_isAllFieldsEmpty(t *testing.T) {
 	assert.False(t, isAllFieldsEmpty([]byte(`{"a":"","b":"b","c":0}`)))
 	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0}`)))
 	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0.0}`)))
+	assert.True(t, isAllFieldsEmpty([]byte(`{"a":"","b":"","c":0.0,"updatedAt":"0001-01-01T00:00:00Z"}`)))
 }
 
 func Test_isIncludePaths(t *testing.T) {
