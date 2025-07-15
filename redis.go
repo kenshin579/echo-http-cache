@@ -23,7 +23,7 @@ func NewCacheRedisStoreWithConfig(opt redis.Options) CacheStore {
 	}
 }
 
-// Get implements the cache CacheRedisClusterStore interface Get method.
+// Get implements the cache CacheRedisStore interface Get method.
 func (store *CacheRedisStore) Get(key uint64) ([]byte, bool) {
 	var data []byte
 	if err := store.store.Get(context.Background(), keyAsString(key), &data); err == nil {

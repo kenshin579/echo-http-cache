@@ -318,7 +318,7 @@ func isAllFieldsEmpty(inter any) bool {
 		var dataMap map[string]any
 
 		if err := json.Unmarshal(inter.([]byte), &dataMap); err != nil {
-			fmt.Printf("fail to unmarshal json. err:%v\n", err)
+			// Failed to unmarshal JSON, assume not empty
 			return false
 		}
 		return isMapEmpty(dataMap)
