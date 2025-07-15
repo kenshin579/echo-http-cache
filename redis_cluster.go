@@ -33,41 +33,73 @@ import (
 )
 
 type (
-	// CacheRedisClusterStore is the redis cluster store
+	// CacheRedisClusterStore is the redis cluster store implementation
 	CacheRedisClusterStore struct {
-		store *redisCache.Cache
+		client *redis.ClusterClient
+		codec  *redisCache.Cache
 	}
 )
 
-// NewCacheRedisClusterWithConfig initializes Redis adapter.
-func NewCacheRedisClusterWithConfig(opt redis.RingOptions) CacheStore {
+// NewCacheRedisClusterStore creates a new Redis Cluster cache store with default config
+func NewCacheRedisClusterStore() CacheStore {
+	return NewCacheRedisClusterStoreWithConfig(redis.ClusterOptions{
+		Addrs: []string{"localhost:17000"},
+	})
+}
+
+// NewCacheRedisClusterStoreWithConfig creates a new Redis Cluster cache store
+func NewCacheRedisClusterStoreWithConfig(opt redis.ClusterOptions) CacheStore {
+	// Set default options for better compatibility
+	if opt.ReadTimeout == 0 {
+		opt.ReadTimeout = 3 * time.Second
+	}
+	if opt.WriteTimeout == 0 {
+		opt.WriteTimeout = opt.ReadTimeout
+	}
+	// Enable route by latency for better performance
+	opt.RouteByLatency = true
+
+	client := redis.NewClusterClient(&opt)
+
 	return &CacheRedisClusterStore{
-		redisCache.New(&redisCache.Options{
-			Redis: redis.NewRing(&opt),
+		client: client,
+		codec: redisCache.New(&redisCache.Options{
+			Redis: client,
 		}),
 	}
 }
 
 // Get implements the cache CacheRedisClusterStore interface Get method.
 func (store *CacheRedisClusterStore) Get(key uint64) ([]byte, bool) {
-	var c []byte
-	if err := store.store.Get(context.Background(), keyAsString(key), &c); err == nil {
-		return c, true
+	var data []byte
+	err := store.codec.Get(context.Background(), keyAsString(key), &data)
+	if err != nil {
+		return nil, false
 	}
-
-	return nil, false
+	return data, true
 }
 
 // Set implements the cache CacheRedisClusterStore interface Set method.
 func (store *CacheRedisClusterStore) Set(key uint64, response []byte, expiration time.Time) {
-	store.store.Set(&redisCache.Item{
+	store.codec.Set(&redisCache.Item{
+		Ctx:   context.Background(),
 		Key:   keyAsString(key),
 		Value: response,
-		TTL:   expiration.Sub(time.Now()),
+		TTL:   time.Until(expiration),
 	})
 }
 
 // Release implements the cache CacheRedisClusterStore interface Release method.
 func (store *CacheRedisClusterStore) Release(key uint64) {
-	store.store.Delete(context.Background(), keyAsString(key))
+	store.codec.Delete(context.Background(), keyAsString(key))
+}
+
+// Clear removes all cache entries from all master nodes
+func (store *CacheRedisClusterStore) Clear() error {
+	ctx := context.Background()
+	// Redis Cluster doesn't support FLUSHALL across all nodes
+	// We need to iterate through each master node
+	return store.client.ForEachMaster(ctx, func(ctx context.Context, shard *redis.Client) error {
+		return shard.FlushDB(ctx).Err()
+	})
 }
