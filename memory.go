@@ -171,3 +171,13 @@ func (store *CacheMemoryStore) evict() {
 
 	store.Release(selectedKey)
 }
+
+// Clear removes all entries from the memory store
+func (store *CacheMemoryStore) Clear() error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	// Clear the entire map
+	store.store = make(map[uint64][]byte, store.capacity)
+	return nil
+}

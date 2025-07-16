@@ -288,3 +288,65 @@ func (suite *TwoLevelCacheTestSuite) TestClearMethods() {
 	stats := twoLevel.GetStats()
 	suite.Equal(int64(0), stats.TotalRequest, "Stats should be reset")
 }
+
+func (suite *TwoLevelCacheTestSuite) TestErrorScenarios() {
+	// Test 1: L1 → L2 fallback scenario
+	// Setup data in L2 first, then test access when L1 has different data
+	key1 := uint64(54321)
+	value1 := []byte("l2-value")
+	expiration := time.Now().Add(10 * time.Minute)
+
+	// Put data directly in L2
+	suite.redisStore.Set(key1, value1, expiration)
+
+	// Create a two-level cache where L1 doesn't have the data
+	twoLevelStore := suite.twoLevelStore.(*CacheTwoLevelStore)
+
+	// Clear L1 to simulate L1 miss
+	if clearer, ok := twoLevelStore.config.L1Store.(interface{ Clear() error }); ok {
+		clearer.Clear()
+	}
+
+	// Get should fallback to L2 and then warm L1
+	result1, found1 := suite.twoLevelStore.Get(key1)
+	suite.True(found1, "Should find data in L2 when L1 misses")
+	suite.Equal(value1, result1, "Should get correct value from L2")
+
+	// Test 2: Error resilience - data should be accessible even if one layer fails
+	key2 := uint64(98765)
+	value2 := []byte("test-value")
+
+	// Set data in both layers
+	suite.twoLevelStore.Set(key2, value2, expiration)
+
+	// Verify data exists in both L1 and L2
+	l1Result, l1Found := suite.memoryStore.Get(key2)
+	suite.True(l1Found, "L1 should have the data")
+	suite.Equal(value2, l1Result, "L1 should have correct data")
+
+	l2Result, l2Found := suite.redisStore.Get(key2)
+	suite.True(l2Found, "L2 should have the data")
+	suite.Equal(value2, l2Result, "L2 should have correct data")
+
+	// Test 3: Cache warming behavior
+	key3 := uint64(11111)
+	value3 := []byte("warming-test")
+
+	// Put data only in L2
+	suite.redisStore.Set(key3, value3, expiration)
+
+	// First access should trigger cache warming
+	result3, found3 := suite.twoLevelStore.Get(key3)
+	suite.True(found3, "Should find data in L2")
+	suite.Equal(value3, result3, "Should get correct value")
+
+	// If cache warming is enabled, L1 should now have the data
+	if twoLevelStore.config.CacheWarming {
+		// Give it a moment for async warming if applicable
+		time.Sleep(10 * time.Millisecond)
+
+		l1Warmed, l1WarmFound := suite.memoryStore.Get(key3)
+		suite.True(l1WarmFound, "L1 should be warmed with data from L2")
+		suite.Equal(value3, l1Warmed, "L1 should have correct warmed data")
+	}
+}

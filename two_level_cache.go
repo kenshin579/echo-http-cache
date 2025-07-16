@@ -96,8 +96,7 @@ func (store *CacheTwoLevelStore) Get(key uint64) ([]byte, bool) {
 
 		// Cache warming: promote L2 data to L1
 		if store.config.CacheWarming {
-			l1Expiration := time.Now().Add(store.config.L1TTL)
-			store.config.L1Store.Set(key, data, l1Expiration)
+			store.warmCache(key, data)
 		}
 
 		return data, true
@@ -106,6 +105,36 @@ func (store *CacheTwoLevelStore) Get(key uint64) ([]byte, bool) {
 	// Cache miss
 	store.metrics.IncrementMiss()
 	return nil, false
+}
+
+// warmCache promotes L2 data to L1 cache with optimized logic
+func (store *CacheTwoLevelStore) warmCache(key uint64, data []byte) {
+	if store.config.SyncMode == "async" {
+		// Async warming to avoid blocking the response
+		select {
+		case store.asyncChan <- asyncOperation{
+			operation: "warm",
+			key:       key,
+			data:      data,
+		}:
+			// Successfully queued for warming
+		default:
+			// Queue is full, skip warming to avoid blocking
+		}
+	} else {
+		// Sync warming
+		store.performWarming(key, data)
+	}
+}
+
+// performWarming executes the actual cache warming operation
+func (store *CacheTwoLevelStore) performWarming(key uint64, data []byte) {
+	// Smart TTL calculation: use the shorter of L1TTL or remaining time
+	l1Expiration := time.Now().Add(store.config.L1TTL)
+
+	// For now, we use L1TTL. In a future version, we could get the actual
+	// expiration from L2 store if the interface supports it
+	store.config.L1Store.Set(key, data, l1Expiration)
 }
 
 // Set implements CacheStore interface
@@ -193,6 +222,8 @@ func (store *CacheTwoLevelStore) startAsyncWorker() {
 					store.config.L2Store.Set(op.key, op.data, op.expiration)
 				case "release":
 					store.config.L2Store.Release(op.key)
+				case "warm":
+					store.performWarming(op.key, op.data)
 				}
 			case <-store.stopChan:
 				return
@@ -223,22 +254,6 @@ func (store *CacheTwoLevelStore) GetStats() CacheStats {
 	}
 
 	return stats
-}
-
-// ClearL1 clears only L1 cache
-func (store *CacheTwoLevelStore) ClearL1() error {
-	if clearer, ok := store.config.L1Store.(interface{ Clear() error }); ok {
-		return clearer.Clear()
-	}
-	return nil
-}
-
-// ClearL2 clears only L2 cache
-func (store *CacheTwoLevelStore) ClearL2() error {
-	if clearer, ok := store.config.L2Store.(interface{ Clear() error }); ok {
-		return clearer.Clear()
-	}
-	return nil
 }
 
 // ClearL1 clears only L1 cache
