@@ -1,0 +1,21 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: false
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    uses: kenshin579/actions/.github/workflows/release.yml@main
+    with:
+      version_type: ${{ inputs.version_type }}
+    secrets: inherit
