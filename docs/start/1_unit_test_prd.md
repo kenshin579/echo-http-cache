@@ -8,7 +8,7 @@ echo-http-cache 프로젝트는 현재 로컬에서만 테스트를 실행하고
 ### 목표
 - PR 생성 및 main 브랜치 push 시 자동으로 단위 테스트 실행
 - 테스트 결과 및 커버리지를 PR 코멘트로 리포팅
-- my-actions 저장소의 재사용 가능한 워크플로우(`unit-test.yml`) 활용
+- actions 저장소의 재사용 가능한 워크플로우(`unit-test-go.yml`) 활용
 
 ---
 
@@ -22,7 +22,7 @@ echo-http-cache 프로젝트는 현재 로컬에서만 테스트를 실행하고
 | 테스트 프레임워크 | testify (assert, suite) |
 | Mock Redis | miniredis/v2 |
 | 통합 테스트 | Docker Compose (Redis Cluster) |
-| GitHub Actions | **미구성** |
+| GitHub Actions | 구성됨 (tests.yml) |
 
 ### 2.2 테스트 파일 구조
 
@@ -56,9 +56,9 @@ go test -v -tags=integration -run Integration ./...
 go test -bench=. -benchmem ./...
 ```
 
-### 2.4 my-actions 워크플로우 (`unit-test.yml`)
+### 2.4 actions 워크플로우 (`unit-test-go.yml`)
 
-**위치:** `kenshin579/my-actions/.github/workflows/unit-test.yml`
+**위치:** `kenshin579/actions/.github/workflows/unit-test-go.yml`
 
 **주요 입력 파라미터:**
 
@@ -121,47 +121,33 @@ go test -bench=. -benchmem ./...
 
 ### 4.1 워크플로우 구성
 
-**파일 위치:** `.github/workflows/test.yml`
+**파일 위치:** `.github/workflows/tests.yml`
 
 ```yaml
-name: Go Tests
+name: Tests
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
 
 jobs:
   test:
-    uses: kenshin579/my-actions/.github/workflows/unit-test.yml@main
-    with:
-      go_version: '1.25'
-      run_unit_tests: true
-      run_integration_tests: false  # 필요시 true로 변경
-      unit_test_args: '-v -short'
-      coverage_enabled: true
-      post_comment: true
-```
-
-### 4.2 통합 테스트 활성화 시 설정
-
-```yaml
-jobs:
-  test:
-    uses: kenshin579/my-actions/.github/workflows/unit-test.yml@main
+    uses: kenshin579/actions/.github/workflows/unit-test-go.yml@main
     with:
       go_version: '1.25'
       run_unit_tests: true
       run_integration_tests: true
       unit_test_args: '-v -short'
-      integration_test_args: '-v -tags=integration -run Integration'
-      docker_compose_file: 'docker-compose.yml'
+      integration_test_args: '-v -run TestCacheRedisClusterStore'
       coverage_enabled: true
+      docker_compose_file: 'docker-compose.yml'
       post_comment: true
 ```
 
-### 4.3 테스트 분류
+### 4.2 테스트 분류
 
 | 테스트 유형 | 실행 조건 | 의존성 | 실행 인자 |
 |------------|----------|--------|----------|
@@ -173,6 +159,5 @@ jobs:
 
 ## 5. 참고 자료
 
-- [my-actions 저장소](https://github.com/kenshin579/my-actions)
-- [unit-test.yml 워크플로우](/Users/user/GolandProjects/my-actions/.github/workflows/unit-test.yml)
-- [echo-http-cache CLAUDE.md](/Users/user/GolandProjects/echo-http-cache/CLAUDE.md)
+- [actions 저장소](https://github.com/kenshin579/actions)
+- [unit-test-go.yml 워크플로우](https://github.com/kenshin579/actions/blob/main/.github/workflows/unit-test-go.yml)
