@@ -22,7 +22,7 @@ echo-http-cache 프로젝트는 현재 로컬에서만 테스트를 실행하고
 | 테스트 프레임워크 | testify (assert, suite) |
 | Mock Redis | miniredis/v2 |
 | 통합 테스트 | Docker Compose (Redis Cluster) |
-| GitHub Actions | 구성됨 (tests.yml) |
+| GitHub Actions | 구성됨 (unit-test.yml) |
 
 ### 2.2 테스트 파일 구조
 
@@ -121,7 +121,7 @@ go test -bench=. -benchmem ./...
 
 ### 4.1 워크플로우 구성
 
-**파일 위치:** `.github/workflows/tests.yml`
+**파일 위치:** `.github/workflows/unit-test.yml`
 
 ```yaml
 name: Tests

@@ -3,7 +3,7 @@
 ## 1. 워크플로우 파일
 
 ### 파일 위치
-`.github/workflows/tests.yml`
+`.github/workflows/unit-test.yml`
 
 ### 워크플로우 코드
 
